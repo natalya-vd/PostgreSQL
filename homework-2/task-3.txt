@@ -1,0 +1,19 @@
+postgres@natalya-VirtualBox:~/pg_backups$ pg_dump vk > vk.dump.sql
+postgres@natalya-VirtualBox:~/pg_backups$ createdb vk_staging
+postgres@natalya-VirtualBox:~/pg_backups$ psql vk_staging < vk.dump.sql
+
+postgres@natalya-VirtualBox:~/pg_backups$ psql                                                                               
+psql (14.4 (Ubuntu 14.4-1.pgdg20.04+1))                                                                                      
+Введите "help", чтобы получить справку.                                                                                      
+                                                                                                                             
+postgres=# \c vk_staging                                                                                                     
+Вы подключены к базе данных "vk_staging" как пользователь "postgres".                                                        
+vk_staging=# SELECT * FROM users LIMIT 5;                                                                                    
+ id | first_name | last_name |                email                |     phone      | main_photo_id |     created_at         
+----+------------+-----------+-------------------------------------+----------------+---------------+---------------------   
+  1 | Nomlanga   | Pugh      | tempor.augue@icloud.net             | (867) 261-5235 |            79 | 2022-04-18 21:07:18    
+  2 | Hyatt      | Burns     | ipsum.porta@google.ca               | 1-126-436-7336 |            96 | 2022-10-10 21:41:20    
+  3 | Jordan     | Wilkins   | pharetra.nam.ac@icloud.ca           | (143) 898-1484 |            19 | 2022-07-15 06:07:47    
+  4 | Igor       | Riley     | vulputate.dui.nec@aol.ca            | (841) 898-3022 |             4 | 2023-06-25 15:22:35    
+  5 | Oren       | Cobb      | imperdiet.dictum.magna@outlook.couk | (265) 403-7937 |            51 | 2023-03-19 03:44:00    
+(5 строк)                                                                                                                    

@@ -1,0 +1,28 @@
+// Вариант 1. Создание таблицы-справочника для типа подписки
+CREATE TABLE subscribers (
+	id SERIAL PRIMARY KEY,
+	from_user_id INT NOT NULL,
+	to_subscriber_id INT NOT NULL,
+	subscriber_type_id INT NOT NULL,
+	created_at TIMESTAMP
+);
+
+CREATE TABLE subscribers_statuses (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(30) UNIQUE
+);
+
+// Вариант 2. Создание 2-х отдельных таблиц. Связь многие ко многим. Выбрала второй вариант.
+CREATE TABLE subscribers_users (
+    id SERIAL PRIMARY KEY,
+    from_user_id INT NOT NULL,
+    to_user_id INT  NOT NULL,
+    created_at TIMESTAMP
+);
+
+CREATE TABLE communities_subscribers (
+    id SERIAL PRIMARY KEY,
+    from_user_id INT NOT NULL,
+    to_community_id INT  NOT NULL,
+    created_at TIMESTAMP
+);
