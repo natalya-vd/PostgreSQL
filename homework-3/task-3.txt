@@ -1,0 +1,15 @@
+// Выполнение задания 3
+ALTER TABLE photo ADD COLUMN metadata JSON;
+UPDATE photo SET metadata = json_build_object(
+	'id', id,
+	'url', url,
+	'size', size
+);
+
+// Далее просто для тренировки команды
+SELECT metadata FROM photo WHERE id = 1;
+SELECT json_each(metadata) FROM photo WHERE id = 1;
+SELECT metadata->>'url' FROM photo WHERE (metadata->>'id')::INTEGER = 1;
+UPDATE photo
+	SET metadata = metadata::jsonb - 'url' || '{"url": "http://google.com/photo-4578625"}'
+	WHERE (metadata->>'id')::INTEGER = 1;
