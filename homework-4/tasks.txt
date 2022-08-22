@@ -1,0 +1,141 @@
+// Вложенные запросы
+SELECT
+	id,
+	(SELECT first_name FROM users WHERE id = video.user_id) AS first_name_user,
+	(SELECT last_name FROM users WHERE id = video.user_id) AS last_name_user,
+	(SELECT url FROM photo WHERE id = (SELECT main_photo_id FROM users WHERE id = video.user_id)) AS url_main_photo,
+	url,
+	size
+FROM video
+ORDER BY size DESC
+LIMIT 10;
+
+Результат:
+id | first_name_user | last_name_user |         url_main_photo         |              url              | size
+----+-----------------+----------------+--------------------------------+-------------------------------+------
+ 33 | Julie           | Goodman        | http://instagram.com/settings2 | http://youtube.com/fr         |  998
+  7 | Wynter          | Galloway       | http://bbc.co.uk/sub/cars      | https://google.com/fr         |  970
+ 67 | Irene           | Michael        | http://google.com/user/110     | https://walmart.com/site      |  968
+ 15 | Gage            | Gamble         | http://nytimes.com/sub         | https://whatsapp.com/user/110 |  957
+ 97 | Jordan          | Wilkins        | https://instagram.com/group/9  | http://instagram.com/settings |  941
+ 39 | Hall            | Coffey         | https://youtube.com/site       | http://instagram.com/group/9  |  916
+ 91 | Norman          | Hendrix        | https://whatsapp.com/fr        | http://guardian.co.uk/sub     |  914
+ 95 | Griffin         | Beck           | http://nytimes.com/sub/cars    | https://bbc.co.uk/sub3        |  906
+  5 | Tatum           | Taylor         | http://reddit.com/en-ca        | http://twitter.com/group/9    |  903
+ 78 | Quynn           | Chapman        | http://google.com/one2         | https://youtube.com/one       |  885
+
+
+
+
+// Временные таблицы
+CREATE TEMPORARY TABLE video_limit(
+id INT,
+user_id INT,
+url VARCHAR(250),
+size INT
+);
+
+INSERT INTO video_limit
+SELECT id, user_id, url, size 
+FROM video 
+ORDER BY size DESC
+LIMIT 10;
+
+SELECT
+	video_limit.id,
+	users.first_name,
+	users.last_name,
+	photo.url AS url_main_photo,
+	video_limit.url,
+	video_limit.size
+FROM video_limit
+	LEFT JOIN users
+		ON video_limit.user_id = users.id
+	LEFT JOIN photo
+		ON users.main_photo_id = photo.id;
+
+
+// Результат
+id | first_name | last_name |         url_main_photo         |              url              | size
+----+------------+-----------+--------------------------------+-------------------------------+------
+ 33 | Julie      | Goodman   | http://instagram.com/settings2 | http://youtube.com/fr         |  998
+  7 | Wynter     | Galloway  | http://bbc.co.uk/sub/cars      | https://google.com/fr         |  970
+ 67 | Irene      | Michael   | http://google.com/user/110     | https://walmart.com/site      |  968
+ 15 | Gage       | Gamble    | http://nytimes.com/sub         | https://whatsapp.com/user/110 |  957
+ 97 | Jordan     | Wilkins   | https://instagram.com/group/9  | http://instagram.com/settings |  941
+ 39 | Hall       | Coffey    | https://youtube.com/site       | http://instagram.com/group/9  |  916
+ 91 | Norman     | Hendrix   | https://whatsapp.com/fr        | http://guardian.co.uk/sub     |  914
+ 95 | Griffin    | Beck      | http://nytimes.com/sub/cars    | https://bbc.co.uk/sub3        |  906
+  5 | Tatum      | Taylor    | http://reddit.com/en-ca        | http://twitter.com/group/9    |  903
+ 78 | Quynn      | Chapman   | http://google.com/one2         | https://youtube.com/one       |  885
+
+
+
+
+
+// Табличное выражение
+WITH video_limit AS (
+SELECT id, user_id, url, size 
+FROM video 
+ORDER BY size DESC
+LIMIT 10
+)
+SELECT
+	video_limit.id,
+	users.first_name,
+	users.last_name,
+	photo.url AS url_main_photo,
+	video_limit.url,
+	video_limit.size
+FROM video_limit
+	LEFT JOIN users
+		ON video_limit.user_id = users.id
+	LEFT JOIN photo
+		ON users.main_photo_id = photo.id
+ORDER BY size DESC;
+
+// Результат
+id | first_name | last_name |         url_main_photo         |              url              | size
+----+------------+-----------+--------------------------------+-------------------------------+------
+ 33 | Julie      | Goodman   | http://instagram.com/settings2 | http://youtube.com/fr         |  998
+  7 | Wynter     | Galloway  | http://bbc.co.uk/sub/cars      | https://google.com/fr         |  970
+ 67 | Irene      | Michael   | http://google.com/user/110     | https://walmart.com/site      |  968
+ 15 | Gage       | Gamble    | http://nytimes.com/sub         | https://whatsapp.com/user/110 |  957
+ 97 | Jordan     | Wilkins   | https://instagram.com/group/9  | http://instagram.com/settings |  941
+ 39 | Hall       | Coffey    | https://youtube.com/site       | http://instagram.com/group/9  |  916
+ 91 | Norman     | Hendrix   | https://whatsapp.com/fr        | http://guardian.co.uk/sub     |  914
+ 95 | Griffin    | Beck      | http://nytimes.com/sub/cars    | https://bbc.co.uk/sub3        |  906
+  5 | Tatum      | Taylor    | http://reddit.com/en-ca        | http://twitter.com/group/9    |  903
+ 78 | Quynn      | Chapman   | http://google.com/one2         | https://youtube.com/one       |  885
+
+
+
+// Объединение JOIN
+SELECT
+	video.id,
+	users.first_name,
+	users.last_name,
+	photo.url AS url_main_photo,
+	video.url,
+	video.size
+FROM video 
+	LEFT JOIN users
+		ON video.user_id = users.id
+	LEFT JOIN photo
+		ON users.main_photo_id = photo.id
+ORDER BY size DESC
+LIMIT 10;
+
+// Результат
+id | first_name | last_name |         url_main_photo         |              url              | size
+----+------------+-----------+--------------------------------+-------------------------------+------
+ 33 | Julie      | Goodman   | http://instagram.com/settings2 | http://youtube.com/fr         |  998
+  7 | Wynter     | Galloway  | http://bbc.co.uk/sub/cars      | https://google.com/fr         |  970
+ 67 | Irene      | Michael   | http://google.com/user/110     | https://walmart.com/site      |  968
+ 15 | Gage       | Gamble    | http://nytimes.com/sub         | https://whatsapp.com/user/110 |  957
+ 97 | Jordan     | Wilkins   | https://instagram.com/group/9  | http://instagram.com/settings |  941
+ 39 | Hall       | Coffey    | https://youtube.com/site       | http://instagram.com/group/9  |  916
+ 91 | Norman     | Hendrix   | https://whatsapp.com/fr        | http://guardian.co.uk/sub     |  914
+ 95 | Griffin    | Beck      | http://nytimes.com/sub/cars    | https://bbc.co.uk/sub3        |  906
+  5 | Tatum      | Taylor    | http://reddit.com/en-ca        | http://twitter.com/group/9    |  903
+ 78 | Quynn      | Chapman   | http://google.com/one2         | https://youtube.com/one       |  885
