@@ -1,0 +1,6 @@
+postgres=# CREATE EXTENSION hstore;
+postgres=# SELECT * FROM pg_extension WHERE extname = 'hstore';
+  oid  | extname | extowner | extnamespace | extrelocatable | extversion | extconfig | extcondition
+-------+---------+----------+--------------+----------------+------------+-----------+--------------
+ 73759 | hstore  |       10 |         2200 | t              | 1.8        |           |
+(1 строка)

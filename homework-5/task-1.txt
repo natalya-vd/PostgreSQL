@@ -1,0 +1,197 @@
+// Создаем роли для групп
+CREATE ROLE analyst;
+CREATE ROLE qa;
+
+postgres=# SELECT rolname FROM pg_roles;          
+          rolname                                 
+---------------------------                       
+ postgres                                         
+ pg_database_owner                                
+ pg_read_all_data                                 
+ pg_write_all_data                                
+ pg_monitor                                       
+ pg_read_all_settings                             
+ pg_read_all_stats                                
+ pg_stat_scan_tables                              
+ pg_read_server_files                             
+ pg_write_server_files                            
+ pg_execute_server_program                        
+ pg_signal_backend                                
+ gb_user                                          
+ analyst                                          
+ qa    
+
+                                           
+
+// Создаем пользователей
+CREATE ROLE serovf LOGIN;
+CREATE ROLE belovr LOGIN;
+
+postgres=# SELECT rolname FROM pg_roles;          
+          rolname                                 
+---------------------------                       
+ postgres                                         
+ pg_database_owner                                
+ pg_read_all_data                                 
+ pg_write_all_data                                
+ pg_monitor                                       
+ pg_read_all_settings                             
+ pg_read_all_stats                                
+ pg_stat_scan_tables                              
+ pg_read_server_files                             
+ pg_write_server_files                            
+ pg_execute_server_program                        
+ pg_signal_backend                                
+ gb_user                                          
+ analyst                                          
+ qa                                               
+ serovf                                           
+ belovr
+
+postgres=# \du
+                                          Список ролей
+ Имя роли |                                Атрибуты                                 | Член ролей
+----------+-------------------------------------------------------------------------+------------
+ analyst  | Вход запрещён                                                           | {}
+ belovr   |                                                                         | {}
+ gb_user  |                                                                         | {}
+ postgres | Суперпользователь, Создаёт роли, Создаёт БД, Репликация, Пропускать RLS | {}
+ qa       | Вход запрещён                                                           | {}
+ serovf   |                                                                         | {}
+
+
+
+// Помещаем пользователей в группы
+GRANT analyst TO serovf;
+GRANT qa TO belovr;
+
+postgres=# \du
+                                          Список ролей
+ Имя роли |                                Атрибуты                                 | Член ролей
+----------+-------------------------------------------------------------------------+------------
+ analyst  | Вход запрещён                                                           | {}
+ belovr   |                                                                         | {qa}
+ gb_user  |                                                                         | {}
+ postgres | Суперпользователь, Создаёт роли, Создаёт БД, Репликация, Пропускать RLS | {}
+ qa       | Вход запрещён                                                           | {}
+ serovf   |                                                                         | {analyst}
+
+
+// Задаем пароли
+ALTER ROLE belovr WITH PASSWORD 'password';
+ALTER ROLE serovf WITH PASSWORD 'password';
+
+
+
+// Выдаем права группам
+GRANT ALL ON ALL TABLES IN SCHEMA public TO qa;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO qa;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO analyst;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO analyst;
+
+
+
+// Проверка прав
+// Пользователь belovr (все права)
+psql -U belovr -d vk -h 127.0.0.1 -W
+vk=> SELECT * FROM photo LIMIT 5;
+-[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------
+id          | 1
+url         | https://naver.com/user/110
+user_id     | 75
+description | amet, consectetuer
+uploaded_at | 2021-11-08 14:51:05
+size        | 528
+metadata    | {"id": 1, "url": "http://google.com/photo-4578625", "size": 528}
+-[ RECORD 2 ]----------------------------------------------------------------------------------------------------------------------------------------
+id          | 2
+url         | https://ebay.com/en-us
+user_id     | 61
+description | lacus. Etiam bibendum fermentum metus. Aenean
+uploaded_at | 2022-01-13 17:38:33
+size        | 880
+metadata    | {"id" : 2, "url" : "https://ebay.com/en-us", "size" : 880}
+-[ RECORD 3 ]----------------------------------------------------------------------------------------------------------------------------------------
+id          | 3
+url         | http://nytimes.com/sub
+user_id     | 47
+description | pede. Praesent eu
+uploaded_at | 2022-02-17 16:36:17
+size        | 719
+metadata    | {"id" : 3, "url" : "http://nytimes.com/sub", "size" : 719}
+-[ RECORD 4 ]----------------------------------------------------------------------------------------------------------------------------------------
+id          | 4
+url         | http://instagram.com/sub/cars
+user_id     | 44
+description | metus eu erat semper rutrum. Fusce dolor quam, elementum at, egestas a, scelerisque sed, sapien.
+uploaded_at | 2023-05-16 23:17:09
+size        | 853
+metadata    | {"id" : 4, "url" : "http://instagram.com/sub/cars", "size" : 853}
+-[ RECORD 5 ]----------------------------------------------------------------------------------------------------------------------------------------
+id          | 5
+url         | https://bbc.co.uk/sub1
+user_id     | 63
+description | felis. Nulla tempor augue ac ipsum. Phasellus vitae mauris sit amet lorem semper auctor. Mauris vel turpis. Aliquam adipiscing lobortis
+uploaded_at | 2023-05-15 16:30:19
+size        | 457
+metadata    | {"id" : 5, "url" : "https://bbc.co.uk/sub1", "size" : 457}
+
+vk=> UPDATE photo SET size = 300 WHERE id = 1;
+UPDATE 1
+vk=> SELECT * FROM photo WHERE id = 1;
+-[ RECORD 1 ]-----------------------------------------------------------------
+id          | 1
+url         | https://naver.com/user/110
+user_id     | 75
+description | amet, consectetuer
+uploaded_at | 2021-11-08 14:51:05
+size        | 300
+metadata    | {"id": 1, "url": "http://google.com/photo-4578625", "size": 528}
+
+
+//Пользователь serovf (права на чтение)
+psql -U serovf -d vk -h 127.0.0.1 -W
+vk=> SELECT * FROM photo LIMIT 5;
+-[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------
+id          | 1
+url         | https://naver.com/user/110
+user_id     | 75
+description | amet, consectetuer
+uploaded_at | 2021-11-08 14:51:05
+size        | 300
+metadata    | {"id": 1, "url": "http://google.com/photo-4578625", "size": 528}
+-[ RECORD 2 ]----------------------------------------------------------------------------------------------------------------------------------------
+id          | 2
+url         | https://ebay.com/en-us
+user_id     | 61
+description | lacus. Etiam bibendum fermentum metus. Aenean
+uploaded_at | 2022-01-13 17:38:33
+size        | 880
+metadata    | {"id" : 2, "url" : "https://ebay.com/en-us", "size" : 880}
+-[ RECORD 3 ]----------------------------------------------------------------------------------------------------------------------------------------
+id          | 3
+url         | http://nytimes.com/sub
+user_id     | 47
+description | pede. Praesent eu
+uploaded_at | 2022-02-17 16:36:17
+size        | 719
+metadata    | {"id" : 3, "url" : "http://nytimes.com/sub", "size" : 719}
+-[ RECORD 4 ]----------------------------------------------------------------------------------------------------------------------------------------
+id          | 4
+url         | http://instagram.com/sub/cars
+user_id     | 44
+description | metus eu erat semper rutrum. Fusce dolor quam, elementum at, egestas a, scelerisque sed, sapien.
+uploaded_at | 2023-05-16 23:17:09
+size        | 853
+metadata    | {"id" : 4, "url" : "http://instagram.com/sub/cars", "size" : 853}
+-[ RECORD 5 ]----------------------------------------------------------------------------------------------------------------------------------------
+id          | 5
+url         | https://bbc.co.uk/sub1
+user_id     | 63
+description | felis. Nulla tempor augue ac ipsum. Phasellus vitae mauris sit amet lorem semper auctor. Mauris vel turpis. Aliquam adipiscing lobortis
+uploaded_at | 2023-05-15 16:30:19
+size        | 457
+metadata    | {"id" : 5, "url" : "https://bbc.co.uk/sub1", "size" : 457}
+
+vk=> UPDATE photo SET size = 486 WHERE id = 1;
+ОШИБКА:  нет доступа к таблице photo
