@@ -1,0 +1,17 @@
+CREATE TABLE profiles (
+	id SERIAL PRIMARY KEY,
+	user_id INT CONSTRAINT profiles_user_id_fk REFERENCES users (id) ON DELETE CASCADE,
+	main_photo_id INT CONSTRAINT profiles_main_photo_id_fk REFERENCES photo(id) ON DELETE SET DEFAULT,
+	created_at TIMESTAMP,
+	user_contacts contacts
+);
+
+INSERT INTO profiles (user_id, main_photo_id, created_at, user_contacts) 
+SELECT id, main_photo_id, created_at, user_contacts 
+FROM users
+ORDER BY id ASC;
+
+ALTER TABLE users 
+	DROP COLUMN main_photo_id,
+	DROP COLUMN created_at,
+	DROP COLUMN user_contacts;
