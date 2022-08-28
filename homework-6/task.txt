@@ -1,0 +1,138 @@
+// Задание 1
+CREATE FUNCTION get_user_id_most_active_by_massages_for_user(user_id INTEGER)
+RETURNS INTEGER AS
+$$
+	SELECT from_user_id
+	FROM messages
+	WHERE to_user_id = user_id
+	GROUP BY from_user_id
+	ORDER BY COUNT(*) DESC
+	LIMIT 1;
+$$
+LANGUAGE SQL;
+
+SELECT get_user_id_most_active_by_massages_for_user(28);
+
+
+
+
+// Задание 2
+CREATE OR REPLACE PROCEDURE moderate_main_photo_id()
+LANGUAGE PLPGSQL AS
+$$
+DECLARE profile_row RECORD;
+BEGIN
+	FOR profile_row IN
+		SELECT * 
+			FROM profiles
+				LEFT JOIN photo
+				ON profiles.main_photo_id = photo.id
+			WHERE photo.user_id != profiles.user_id
+	LOOP
+		UPDATE profiles SET main_photo_id = NULL WHERE id = profile_row.id;
+	END LOOP;
+	COMMIT;
+END;
+$$
+
+CALL moderate_main_photo_id();
+
+
+
+
+// Задание 3
+CREATE OR REPLACE FUNCTION update_main_photo_id_trigger() 
+RETURNS TRIGGER AS 
+$$
+DECLARE is_found BOOLEAN;
+BEGIN
+  is_found := EXISTS(SELECT * FROM photo WHERE photo.id = NEW.main_photo_id AND photo.user_id = NEW.user_id );
+  IF is_found THEN
+    RETURN NEW;
+  END IF;
+  RETURN OLD;
+END
+$$ 
+LANGUAGE PLPGSQL;
+
+CREATE TRIGGER check_main_photo_id_on_update BEFORE UPDATE ON profiles 
+  FOR EACH ROW 
+  EXECUTE FUNCTION update_main_photo_id_trigger();
+
+// Проверка
+vk=> SELECT id, user_id FROM photo WHERE id = 48;
+ id | user_id
+----+---------
+ 48 |      50
+
+// Неверные данные
+vk=> SELECT * from profiles WHERE id = 12;
+ id | user_id | main_photo_id |     created_at      |              user_contacts
+----+---------+---------------+---------------------+------------------------------------------
+ 12 |      12 |               | 2022-11-29 18:31:44 | ("(437) 774-6706",ligula.aenean@aol.org)
+
+vk=> UPDATE profiles SET main_photo_id = 48 WHERE id = 12;
+UPDATE 1
+
+vk=> SELECT * from profiles WHERE id = 12;
+ id | user_id | main_photo_id |     created_at      |              user_contacts
+----+---------+---------------+---------------------+------------------------------------------
+ 12 |      12 |               | 2022-11-29 18:31:44 | ("(437) 774-6706",ligula.aenean@aol.org)
+
+// Корректные данные
+vk=> SELECT * from profiles WHERE id = 50;
+ id | user_id | main_photo_id |     created_at      |               user_contacts
+----+---------+---------------+---------------------+-------------------------------------------
+ 50 |      50 |               | 2022-10-22 13:45:38 | (1-862-769-1942,integer.vitae@google.edu)
+
+vk=> UPDATE profiles SET main_photo_id = 48 WHERE id = 50;
+UPDATE 1
+
+vk=> SELECT * from profiles WHERE id = 50;
+ id | user_id | main_photo_id |     created_at      |               user_contacts
+----+---------+---------------+---------------------+-------------------------------------------
+ 50 |      50 |            48 | 2022-10-22 13:45:38 | (1-862-769-1942,integer.vitae@google.edu)
+
+
+
+
+// Задание 4
+
+// Неизменяемое представление
+CREATE VIEW ten_video_big_size AS
+SELECT id, user_id, size 
+	FROM video
+	ORDER BY size DESC
+	LIMIT 10;
+
+vk=> SELECT * FROM ten_video_big_size;
+ id | user_id | size
+----+---------+------
+ 33 |      92 |  998
+  7 |      58 |  970
+ 67 |      86 |  968
+ 15 |      47 |  957
+ 97 |       3 |  941
+ 39 |      48 |  916
+ 91 |      89 |  914
+ 95 |      19 |  906
+  5 |      49 |  903
+ 78 |      25 |  885
+
+// Изменяемое представление
+CREATE VIEW video_uploaded_last_month AS
+SELECT * FROM video 
+  WHERE uploaded_at > (current_timestamp - interval '1 month');
+
+vk=> SELECT id, user_id, uploaded_at FROM video_uploaded_last_month LIMIT 3;
+ id | user_id |     uploaded_at
+----+---------+---------------------
+  3 |      74 | 2023-03-01 12:09:42
+  4 |      49 | 2023-02-18 17:01:20
+  5 |      49 | 2023-05-06 02:04:22
+
+UPDATE video_uploaded_last_month SET user_id = 5 WHERE id  = 4;
+vk=> SELECT id, user_id, uploaded_at FROM video_uploaded_last_month WHERE id = 4;
+ id | user_id |     uploaded_at
+----+---------+---------------------
+  4 |       5 | 2023-02-18 17:01:20
