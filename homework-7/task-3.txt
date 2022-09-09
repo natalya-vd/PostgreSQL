@@ -1,0 +1,22 @@
+WITH community_video AS (
+SELECT DISTINCT
+  	users.id,
+  	users.first_name,
+	users.last_name,
+	video.size,
+	communities.id AS communities_id
+  FROM communities
+    LEFT JOIN communities_users
+      ON communities_users.community_id = communities.id
+    INNER JOIN video
+      ON video.user_id = communities_users.user_id
+    INNER JOIN users 
+      ON users.id = video.user_id
+ORDER BY communities.id DESC, users.id, video.size DESC)
+SELECT DISTINCT
+	FIRST_VALUE(id) OVER (PARTITION BY community_video.communities_id) AS user_id_video_big_size,
+	FIRST_VALUE(first_name) OVER (PARTITION BY community_video.communities_id) AS user_first_name_video_big_size,
+	FIRST_VALUE(last_name) OVER (PARTITION BY community_video.communities_id) AS user_last_name_video_big_size,
+	AVG(community_video.size) OVER (PARTITION BY community_video.communities_id) AS average_video
+	FROM community_video
+	ORDER BY average_video DESC;

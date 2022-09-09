@@ -1,0 +1,20 @@
+WITH users_with_photo_and_video AS (
+SELECT DISTINCT
+	users.first_name,
+	users.last_name,
+	COUNT(photo.id) OVER (PARTITION BY users.id) AS photo_count,
+	COUNT(video.id) OVER (PARTITION BY users.id) AS video_count
+	FROM users
+		LEFT JOIN photo 
+			ON photo.user_id = users.id
+		LEFT JOIN video
+			ON video.user_id = users.id)
+SELECT
+	first_name,
+	last_name,
+	photo_count,
+	video_count,
+	DENSE_RANK() OVER (ORDER BY photo_count DESC) AS photo_rank,
+	DENSE_RANK() OVER (ORDER BY video_count DESC) AS video_count
+		FROM users_with_photo_and_video
+		ORDER BY photo_rank;
