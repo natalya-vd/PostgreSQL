@@ -2,13 +2,14 @@ WITH users_with_photo_and_video AS (
 SELECT DISTINCT
 	users.first_name,
 	users.last_name,
-	COUNT(photo.id) OVER (PARTITION BY users.id) AS photo_count,
-	COUNT(video.id) OVER (PARTITION BY users.id) AS video_count
+	COUNT(DISTINCT photo.id) AS photo_count,
+	COUNT(DISTINCT video.id) AS video_count
 	FROM users
 		LEFT JOIN photo 
 			ON photo.user_id = users.id
 		LEFT JOIN video
-			ON video.user_id = users.id)
+			ON video.user_id = users.id
+	GROUP BY users.id)
 SELECT
 	first_name,
 	last_name,
