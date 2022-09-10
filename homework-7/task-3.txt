@@ -1,0 +1,17 @@
+WITH community_video AS (
+SELECT
+  	communities.name AS communities_name,
+  	communities_users.user_id,
+	video.size AS video_size
+  FROM video
+    INNER JOIN communities_users
+      ON video.user_id = communities_users.user_id
+    RIGHT JOIN communities 
+      ON communities.id = communities_users.community_id)
+SELECT DISTINCT
+	communities_name,
+	ROUND(AVG(video_size) OVER (PARTITION BY communities_name)) AS average_video_size,
+	FIRST_VALUE(first_name || ' ' || last_name) OVER (PARTITION BY communities_name ORDER BY video_size DESC NULLS LAST) AS user_with_video_big_size
+	FROM community_video
+	LEFT JOIN users
+	ON community_video.user_id = users.id;

@@ -1,0 +1,46 @@
+CREATE OR REPLACE PROCEDURE delete_user_not_status_friendship (status_id INTEGER)
+LANGUAGE PLPGSQL AS
+$$
+DECLARE user_id_delete INTEGER;
+BEGIN
+	FOR user_id_delete IN
+		SELECT DISTINCT id
+		FROM users 
+		WHERE users.id NOT IN (SELECT DISTINCT users.id
+			FROM users
+				LEFT JOIN friendship
+					ON users.id = friendship.requested_by_user_id
+						OR users.id = friendship.requested_to_user_id
+				LEFT JOIN friendship_statuses
+					ON friendship.status_id = friendship_statuses.id
+				WHERE friendship_statuses.id = 1) 
+		ORDER BY id
+	LOOP
+	DELETE FROM communities_subscribers WHERE from_user_id = user_id_delete;
+	DELETE FROM communities_users WHERE communities_users.user_id = user_id_delete;
+	DELETE FROM communities WHERE creator_id = user_id_delete;
+	DELETE FROM friendship WHERE requested_by_user_id = user_id_delete;
+	DELETE FROM friendship WHERE requested_to_user_id = user_id_delete;
+	DELETE FROM messages WHERE from_user_id = user_id_delete;
+	DELETE FROM messages WHERE to_user_id = user_id_delete;
+	DELETE FROM profiles WHERE profiles.user_id = user_id_delete;
+	DELETE FROM photo WHERE photo.user_id = user_id_delete;
+	DELETE FROM video WHERE video.user_id = user_id_delete;
+	DELETE FROM subscribers_users WHERE from_user_id = user_id_delete;
+	DELETE FROM subscribers_users WHERE to_user_id = user_id_delete;
+	DELETE FROM users WHERE id = user_id_delete;
+	COMMIT;
+	END LOOP;
+END;
+$$;
+
+// Пусть нужно удалить статус с id = 1.
+CALL delete_user_not_status_friendship(1);
+		
+
+
+
+
+
+
+
