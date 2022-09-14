@@ -1,0 +1,133 @@
+-- Создание БД
+postgres=# CREATE DATABASE tg;
+CREATE DATABASE
+postgres=# GRANT ALL PRIVILEGES ON DATABASE tg to gb_user;
+GRANT
+
+
+postgres@natalya-VirtualBox:~$ psql -Ugb_user tg -h127.0.0.1                              
+Пароль пользователя gb_user:                                                              
+psql (14.4 (Ubuntu 14.4-1.pgdg20.04+1))                                                   
+SSL-соединение (протокол: TLSv1.3, шифр: TLS_AES_256_GCM_SHA384, бит: 256, сжатие: выкл.) 
+Введите "help", чтобы получить справку.                                           
+tg=>
+
+
+
+
+-- Создание таблиц
+CREATE TABLE users (
+	id SERIAL PRIMARY KEY,
+	first_name VARCHAR(50) NOT NULL,
+	last_name VARCHAR(50) NOT NULL,
+	nick_name VARCHAR(50) NOT NULL,
+	phone VARCHAR(15) UNIQUE,
+	info VARCHAR(255),
+	main_photo_id INT,
+	created_at TIMESTAMP
+);
+
+CREATE TABLE messages_users (
+	id SERIAL PRIMARY KEY,
+	from_user_id INT NOT NULL,
+	to_user_id INT NOT NULL,
+	body TEXT,
+	status_id INT NOT NULL,
+	created_at TIMESTAMP
+);
+
+CREATE TABLE messages_statuses (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(30) UNIQUE
+);
+
+CREATE TABLE channels (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(120) UNIQUE,
+	info VARCHAR(255),
+	creator_id INT NOT NULL,
+	main_photo_id INT,
+	created_at TIMESTAMP
+);
+
+CREATE TABLE channels_users (
+	channel_id INT NOT NULL,
+	user_id INT NOT NULL,
+	created_at TIMESTAMP,
+	PRIMARY KEY (channel_id, user_id)
+);
+
+CREATE TABLE channels_messages (
+	id SERIAL PRIMARY KEY,
+	channel_id INT NOT NULL,
+	body TEXT,
+	quantity_views INT,
+	created_at TIMESTAMP
+);
+
+CREATE TABLE comment_channels_messages (
+	id SERIAL PRIMARY KEY,
+	from_user_id INT NOT NULL,
+	to_channel_message_id INT NOT NULL,
+	body TEXT,
+	created_at TIMESTAMP
+);
+
+CREATE TABLE groups (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(120) UNIQUE,
+	info VARCHAR(255),
+	main_photo_id INT,
+	is_open BOOLEAN,
+	creator_id INT NOT NULL,
+	created_at TIMESTAMP
+);
+
+CREATE TABLE groups_users (
+	group_id INT NOT NULL,
+	user_id INT NOT NULL,
+	status_id INT NOT NULL,
+	created_at TIMESTAMP,
+	PRIMARY KEY (group_id, user_id)
+);
+
+CREATE TABLE groups_messages (
+	id SERIAL PRIMARY KEY,
+	from_user_id INT NOT NULL,
+	group_id INT NOT NULL,
+	status_id INT NOT NULL,
+	body TEXT,
+	created_at TIMESTAMP
+);
+
+CREATE TABLE statuses_users (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(30) UNIQUE
+);
+
+CREATE TABLE photo_users (
+	id SERIAL PRIMARY KEY,
+	url VARCHAR(250) NOT NULL UNIQUE,
+	user_id INT NOT NULL,
+	description VARCHAR(250),
+	uploaded_at TIMESTAMP NOT NULL,
+	size INT NOT NULL
+);
+
+CREATE TABLE photo_channels (
+	id SERIAL PRIMARY KEY,
+	url VARCHAR(250) NOT NULL UNIQUE,
+	channel_id INT NOT NULL,
+	description VARCHAR(250),
+	uploaded_at TIMESTAMP NOT NULL,
+	size INT NOT NULL
+);
+
+CREATE TABLE photo_groups (
+	id SERIAL PRIMARY KEY,
+	url VARCHAR(250) NOT NULL UNIQUE,
+	group_id INT NOT NULL,
+	description VARCHAR(250),
+	uploaded_at TIMESTAMP NOT NULL,
+	size INT NOT NULL
+);                                                                  

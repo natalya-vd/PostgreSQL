@@ -1,0 +1,33 @@
+-- Вывести количество фотографий канала с ид 194, вывести название канала, описание канала
+
+SELECT
+	name,
+	info,
+	(SELECT COUNT(id) FROM photo_channels WHERE channel_id = 194) AS quantity_photo
+FROM channels
+WHERE id = 194;
+
+-- Результат
+   name     |                                  info                                  | quantity_photo
+-------------+------------------------------------------------------------------------+----------------
+ Sed Limited | non, sollicitudin a, malesuada id, erat. Etiam vestibulum massa rutrum |              4
+
+
+
+
+
+
+
+-- Вывести участников группы ид 142 (ФИО, id главного фото)
+SELECT 
+	first_name,
+	last_name,
+	main_photo_id
+FROM users
+WHERE id IN (SELECT user_id FROM groups_users WHERE group_id = 142);
+
+-- Результат
+first_name | last_name | main_photo_id
+------------+-----------+---------------
+ Jessica    | Cherry    |            78
+ Allen      | Maxwell   |            38

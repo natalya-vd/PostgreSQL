@@ -1,0 +1,48 @@
+-- Вывести название группы и участников группы в которой загружена самая большая фотография
+CREATE VIEW group_big_photo_users AS (
+WITH big_photo AS(
+	SELECT 
+	group_id,
+	size
+	FROM photo_groups
+	ORDER BY size DESC
+	LIMIT 1)
+SELECT 
+	groups.name AS name_group,
+	first_name,
+	last_name,
+	size
+	FROM big_photo
+	INNER JOIN groups
+		ON groups.id = big_photo.group_id
+	LEFT JOIN groups_users
+		ON groups_users.group_id = groups.id
+	INNER JOIN users
+		ON users.id = groups_users.user_id
+	WHERE groups_users.status_id = 1
+);
+
+
+
+
+
+
+-- Вывести информацию о канале в котором загружено больше всего сообщений и ранг
+CREATE VIEW rank_messages_channels AS (
+	WITH chanel_info AS(
+	SELECT DISTINCT
+		name AS channel_name,
+		info,
+		COUNT (channels_messages.id) OVER (PARTITION BY channel_id) AS messages_count,
+		channel_id
+	FROM channels_messages
+		LEFT JOIN channels
+		ON channels.id = channels_messages.channel_id)
+	SELECT
+		channel_name,
+		info,
+		messages_count,
+		DENSE_RANK() OVER (ORDER BY messages_count DESC) AS channel_rank
+	FROM chanel_info
+	ORDER BY channel_rank
+);

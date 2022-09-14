@@ -1,0 +1,205 @@
+tg=> EXPLAIN SELECT
+tg->    (first_name || ' ' || last_name) AS name_user,
+tg->    photo_users.url,
+tg->    groups_messages.body AS messages,
+tg->    groups_messages.created_at AS created_at_messages,
+tg->    messages_statuses.name AS status
+tg-> FROM users
+tg->    INNER JOIN photo_users
+tg->            ON  users.main_photo_id = photo_users.id
+tg->    INNER JOIN groups_messages
+tg->            ON groups_messages.from_user_id = users.id
+tg->    INNER JOIN messages_statuses
+tg->            ON groups_messages.status_id = messages_statuses.id
+tg-> WHERE groups_messages.group_id = 170;
+                                                 QUERY PLAN
+-------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=8.86..32.76 rows=4 width=325)
+   ->  Nested Loop  (cost=8.70..17.22 rows=4 width=232)
+         ->  Hash Join  (cost=8.55..16.09 rows=4 width=211)
+               Hash Cond: (users.id = groups_messages.from_user_id)
+               ->  Seq Scan on users  (cost=0.00..6.00 rows=200 width=21)
+               ->  Hash  (cost=8.50..8.50 rows=4 width=198)
+                     ->  Seq Scan on groups_messages  (cost=0.00..8.50 rows=4 width=198)
+                           Filter: (group_id = 170)
+         ->  Index Scan using photo_users_pkey on photo_users  (cost=0.14..0.28 rows=1 width=29)
+               Index Cond: (id = users.main_photo_id)
+   ->  Memoize  (cost=0.16..6.18 rows=1 width=82)
+         Cache Key: groups_messages.status_id
+         Cache Mode: logical
+         ->  Index Scan using messages_statuses_pkey on messages_statuses  (cost=0.15..6.17 rows=1 width=82)
+               Index Cond: (id = groups_messages.status_id)
+(15 rows)
+
+
+
+
+EXPLAIN ANALYZE SELECT
+    (first_name || ' ' || last_name) AS name_user,
+    photo_users.url,
+    groups_messages.body AS messages,
+    groups_messages.created_at AS created_at_messages,
+    messages_statuses.name AS status
+ FROM users
+    INNER JOIN photo_users
+            ON  users.main_photo_id = photo_users.id
+    INNER JOIN groups_messages
+            ON groups_messages.from_user_id = users.id
+    INNER JOIN messages_statuses
+            ON groups_messages.status_id = messages_statuses.id
+ WHERE groups_messages.group_id = 170;
+                                                                      QUERY PLAN
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=8.86..32.76 rows=4 width=325) (actual time=4.110..4.225 rows=4 loops=1)
+   ->  Nested Loop  (cost=8.70..17.22 rows=4 width=232) (actual time=2.627..2.727 rows=4 loops=1)
+         ->  Hash Join  (cost=8.55..16.09 rows=4 width=211) (actual time=2.604..2.683 rows=4 loops=1)
+               Hash Cond: (users.id = groups_messages.from_user_id)
+               ->  Seq Scan on users  (cost=0.00..6.00 rows=200 width=21) (actual time=0.005..0.067 rows=200 loops=1)
+               ->  Hash  (cost=8.50..8.50 rows=4 width=198) (actual time=2.561..2.562 rows=4 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     ->  Seq Scan on groups_messages  (cost=0.00..8.50 rows=4 width=198) (actual time=1.499..2.536 rows=4 loops=1)
+                           Filter: (group_id = 170)
+                           Rows Removed by Filter: 199
+         ->  Index Scan using photo_users_pkey on photo_users  (cost=0.14..0.28 rows=1 width=29) (actual time=0.007..0.008 rows=1 loops=4)
+               Index Cond: (id = users.main_photo_id)
+   ->  Memoize  (cost=0.16..6.18 rows=1 width=82) (actual time=0.369..0.369 rows=1 loops=4)
+         Cache Key: groups_messages.status_id
+         Cache Mode: logical
+         Hits: 1  Misses: 3  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+         ->  Index Scan using messages_statuses_pkey on messages_statuses  (cost=0.15..6.17 rows=1 width=82) (actual time=0.488..0.488 rows=1 loops=3)
+               Index Cond: (id = groups_messages.status_id)
+ Planning Time: 0.347 ms
+ Execution Time: 4.282 ms
+(20 rows)
+
+
+
+-- Проанализировав запрос можно увидеть, что в узле с таблицей groups_messages идет последовательное сканирование, но выбирается всего 4 строки. Этот момент можно улучшить.
+-- Создадим индексы на столбцы с внешними ключами, которые участвуют в запросе в условии объединения JOIN ON.
+-- Проверим какие есть индексы в таблицах users, photo_users, groups_messages, groups_messages
+
+
+tg=> SELECT indexname FROM pg_indexes WHERE tablename = 'users';
+    indexname
+-----------------
+ users_pkey
+ users_phone_key
+(2 rows)
+
+
+tg=> SELECT indexname FROM pg_indexes WHERE tablename = 'photo_users';
+      indexname
+---------------------
+ photo_users_pkey
+ photo_users_url_key
+(2 rows)
+
+
+tg=> SELECT indexname FROM pg_indexes WHERE tablename = 'groups_messages';
+      indexname
+----------------------
+ groups_messages_pkey
+(1 row)
+
+
+tg=> SELECT indexname FROM pg_indexes WHERE tablename = 'messages_statuses';
+         indexname
+----------------------------
+ messages_statuses_pkey
+ messages_statuses_name_key
+(2 rows)
+
+
+-- Создадим индексы
+CREATE INDEX users_main_photo_id_fk ON users (main_photo_id);
+CREATE INDEX groups_messages_from_user_id_fk ON groups_messages (from_user_id);
+CREATE INDEX groups_messages_status_id_fk ON groups_messages (status_id);
+
+
+
+-- Выполним повторно запрос
+
+tg=> EXPLAIN ANALYZE SELECT
+tg->     (first_name || ' ' || last_name) AS name_user,
+tg->     photo_users.url,
+tg->     groups_messages.body AS messages,
+tg->     groups_messages.created_at AS created_at_messages,
+tg->     messages_statuses.name AS status
+tg->  FROM users
+tg->     INNER JOIN photo_users
+tg->             ON  users.main_photo_id = photo_users.id
+tg->     INNER JOIN groups_messages
+tg->             ON groups_messages.from_user_id = users.id
+tg->     INNER JOIN messages_statuses
+tg->             ON groups_messages.status_id = messages_statuses.id
+tg->  WHERE groups_messages.group_id = 170;
+                                                                      QUERY PLAN
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=8.89..32.79 rows=4 width=325) (actual time=0.224..0.343 rows=4 loops=1)
+   ->  Nested Loop  (cost=8.73..17.26 rows=4 width=232) (actual time=0.163..0.261 rows=4 loops=1)
+         ->  Hash Join  (cost=8.59..16.13 rows=4 width=211) (actual time=0.148..0.225 rows=4 loops=1)
+               Hash Cond: (users.id = groups_messages.from_user_id)
+               ->  Seq Scan on users  (cost=0.00..6.00 rows=200 width=21) (actual time=0.012..0.066 rows=200 loops=1)
+               ->  Hash  (cost=8.54..8.54 rows=4 width=198) (actual time=0.086..0.086 rows=4 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     ->  Seq Scan on groups_messages  (cost=0.00..8.54 rows=4 width=198) (actual time=0.015..0.077 rows=4 loops=1)
+                           Filter: (group_id = 170)
+                           Rows Removed by Filter: 199
+         ->  Index Scan using photo_users_pkey on photo_users  (cost=0.14..0.28 rows=1 width=29) (actual time=0.006..0.006 rows=1 loops=4)
+               Index Cond: (id = users.main_photo_id)
+   ->  Memoize  (cost=0.16..6.18 rows=1 width=82) (actual time=0.017..0.017 rows=1 loops=4)
+         Cache Key: groups_messages.status_id
+         Cache Mode: logical
+         Hits: 1  Misses: 3  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+         ->  Index Scan using messages_statuses_pkey on messages_statuses  (cost=0.15..6.17 rows=1 width=82) (actual time=0.018..0.018 rows=1 loops=3)
+               Index Cond: (id = groups_messages.status_id)
+ Planning Time: 2.126 ms
+ Execution Time: 0.457 ms
+(20 rows)
+
+-- Общее время запроса улучшилось, хотя так же идет последовательное сканирование (тут возможно какое-то кэширование сыграло роль)
+-- Принудительно отключим последовательное сканирование и выполним еще раз запрос
+
+SET enable_seqscan TO OFF;
+
+
+tg=> EXPLAIN ANALYZE SELECT
+tg->     (first_name || ' ' || last_name) AS name_user,
+tg->     photo_users.url,
+tg->     groups_messages.body AS messages,
+tg->     groups_messages.created_at AS created_at_messages,
+tg->     messages_statuses.name AS status
+tg->  FROM users
+tg->     INNER JOIN photo_users
+tg->             ON  users.main_photo_id = photo_users.id
+tg->     INNER JOIN groups_messages
+tg->             ON groups_messages.from_user_id = users.id
+tg->     INNER JOIN messages_statuses
+tg->             ON groups_messages.status_id = messages_statuses.id
+tg->  WHERE groups_messages.group_id = 170;
+                                                                               QUERY PLAN
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=34.12..68.95 rows=4 width=325) (actual time=0.245..0.294 rows=4 loops=1)
+   ->  Nested Loop  (cost=33.96..53.42 rows=4 width=232) (actual time=0.230..0.270 rows=4 loops=1)
+         ->  Merge Join  (cost=33.82..52.29 rows=4 width=211) (actual time=0.219..0.252 rows=4 loops=1)
+               Merge Cond: (users.id = groups_messages.from_user_id)
+               ->  Index Scan using users_pkey on users  (cost=0.14..18.14 rows=200 width=21) (actual time=0.008..0.042 rows=173 loops=1)
+               ->  Sort  (cost=33.58..33.59 rows=4 width=198) (actual time=0.185..0.186 rows=4 loops=1)
+                     Sort Key: groups_messages.from_user_id
+                     Sort Method: quicksort  Memory: 26kB
+                     ->  Index Scan using groups_messages_status_id_fk on groups_messages  (cost=0.14..33.54 rows=4 width=198) (actual time=0.135..0.177 rows=4 loops=1)
+                           Filter: (group_id = 170)
+                           Rows Removed by Filter: 199
+         ->  Index Scan using photo_users_pkey on photo_users  (cost=0.14..0.28 rows=1 width=29) (actual time=0.003..0.003 rows=1 loops=4)
+               Index Cond: (id = users.main_photo_id)
+   ->  Memoize  (cost=0.16..6.18 rows=1 width=82) (actual time=0.004..0.004 rows=1 loops=4)
+         Cache Key: groups_messages.status_id
+         Cache Mode: logical
+         Hits: 1  Misses: 3  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+         ->  Index Scan using messages_statuses_pkey on messages_statuses  (cost=0.15..6.17 rows=1 width=82) (actual time=0.003..0.003 rows=1 loops=3)
+               Index Cond: (id = groups_messages.status_id)
+ Planning Time: 1.205 ms
+ Execution Time: 0.374 ms
+(21 rows)
+
+-- Сканирование идет по индексам, но где-то показатели ухудшились (возможно из-за того, что на таблицах с небольшими данными последовательное сканирование выигрывает).
