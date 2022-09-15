@@ -1,0 +1,56 @@
+ALTER TABLE users
+	ADD CONSTRAINT users_main_photo_id_fk FOREIGN KEY (main_photo_id) REFERENCES photo_users (id) ON DELETE SET DEFAULT;
+
+
+ALTER TABLE messages_users
+	ADD CONSTRAINT messages_users_from_user_id_fk FOREIGN KEY (from_user_id) REFERENCES users (id),
+	ADD CONSTRAINT messages_users_to_user_id_fk FOREIGN KEY (to_user_id) REFERENCES users (id),
+	ADD CONSTRAINT messages_users_status_id_fk FOREIGN KEY (status_id) REFERENCES messages_statuses (id);
+
+
+ALTER TABLE photo_users
+	ADD CONSTRAINT photo_users_user_id_fk FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
+
+
+ALTER TABLE photo_channels
+	ADD CONSTRAINT photo_channels_user_id_fk FOREIGN KEY (channel_id) REFERENCES channels (id) ON DELETE CASCADE;
+
+
+ALTER TABLE photo_groups
+	ADD CONSTRAINT photo_groups_user_id_fk FOREIGN KEY (group_id) REFERENCES groups (id) ON DELETE CASCADE;
+
+
+ALTER TABLE channels
+	ADD CONSTRAINT channels_main_photo_id_fk FOREIGN KEY (main_photo_id) REFERENCES photo_channels (id) ON DELETE SET DEFAULT,
+	ADD CONSTRAINT channels_creator_id_fk FOREIGN KEY (creator_id) REFERENCES users (id);
+
+
+ALTER TABLE channels_users
+	ADD CONSTRAINT channels_users_channel_id_fk FOREIGN KEY (channel_id) REFERENCES channels (id) ON DELETE CASCADE,
+	ADD CONSTRAINT channels_users_user_id_fk FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
+
+
+ALTER TABLE channels_messages
+	ADD CONSTRAINT channels_messages_channel_id_fk FOREIGN KEY (channel_id) REFERENCES channels (id);
+
+
+ALTER TABLE comment_channels_messages
+	ADD CONSTRAINT comment_channels_messages_from_user_id_fk FOREIGN KEY (from_user_id) REFERENCES users (id),
+	ADD CONSTRAINT comment_channels_messages_to_channel_message_id_fk FOREIGN KEY (to_channel_message_id) REFERENCES channels_messages (id);
+
+
+ALTER TABLE groups
+	ADD CONSTRAINT groups_main_photo_id_fk FOREIGN KEY (main_photo_id) REFERENCES photo_groups (id) ON DELETE SET DEFAULT,
+	ADD CONSTRAINT groups_creator_id_fk FOREIGN KEY (creator_id) REFERENCES users (id);
+
+
+ALTER TABLE groups_users
+	ADD CONSTRAINT groups_users_group_id_fk FOREIGN KEY (group_id) REFERENCES groups (id) ON DELETE CASCADE,
+	ADD CONSTRAINT groups_users_user_id_fk FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+	ADD CONSTRAINT groups_users_status_id_fk FOREIGN KEY (status_id) REFERENCES statuses_users (id) ON DELETE CASCADE;
+
+
+ALTER TABLE groups_messages
+	ADD CONSTRAINT groups_messages_from_user_id_fk FOREIGN KEY (from_user_id) REFERENCES users (id),
+	ADD CONSTRAINT groups_messages_group_id_fk FOREIGN KEY (group_id) REFERENCES groups (id),
+	ADD CONSTRAINT groups_messages_status_id_fk FOREIGN KEY (status_id) REFERENCES messages_statuses (id);

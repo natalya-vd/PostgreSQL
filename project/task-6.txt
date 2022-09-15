@@ -1,0 +1,70 @@
+-- Вывести сообщения (текст, дату создания, статус) и данные о создавшем сообщение пользователе (имя и фамилию пользователя в одном столбце, главное фото создавшего - ссылку) для группы ид 170
+
+SELECT
+	(first_name || ' ' || last_name) AS name_user,
+	photo_users.url,
+	groups_messages.body AS messages,
+	groups_messages.created_at AS created_at_messages,
+	messages_statuses.name AS status
+FROM users
+	INNER JOIN photo_users
+		ON  users.main_photo_id = photo_users.id
+	INNER JOIN groups_messages
+		ON groups_messages.from_user_id = users.id
+	INNER JOIN messages_statuses
+		ON groups_messages.status_id = messages_statuses.id
+WHERE groups_messages.group_id = 170;
+
+
+
+
+-- Вывести переписку 2-х пользователей (с ид 133 и 34). В отчет вывести текст сообщений, статус, дату создания, главные фотки пользователей (урл),  имя и фамилию пользователя (в одном столбце)
+
+-- Это что-то страшное :) Но получила, что хотела
+
+WITH messages_two_users AS (
+SELECT
+	body AS messages,
+	messages_users.created_at AS created_at_messages,
+	name AS status,
+	from_user_id,	
+	to_user_id
+FROM messages_users
+	INNER JOIN messages_statuses
+		ON messages_statuses.id = messages_users.status_id	
+WHERE (from_user_id = 133 AND to_user_id = 34) OR (from_user_id = 34 AND to_user_id = 133)
+), from_user AS (
+SELECT
+	from_user_id,
+	(first_name || ' ' || last_name) AS name_from_user,
+	url AS url_photo_from_user
+FROM messages_two_users
+	INNER JOIN users
+		ON users.id = messages_two_users.from_user_id
+	INNER JOIN photo_users
+		ON users.main_photo_id = photo_users.id
+), to_user AS (
+SELECT
+	to_user_id,
+	(first_name || ' ' || last_name) AS name_to_user,
+	url AS url_photo_to_user
+FROM messages_two_users
+	INNER JOIN users
+		ON users.id = messages_two_users.to_user_id
+	INNER JOIN photo_users
+		ON users.main_photo_id = photo_users.id
+)
+SELECT DISTINCT
+	messages,
+	created_at_messages,
+	status,
+	name_from_user,
+	url_photo_from_user,
+	name_to_user,
+	url_photo_to_user
+FROM messages_two_users
+	INNER JOIN from_user
+		ON from_user.from_user_id = messages_two_users.from_user_id
+	INNER JOIN to_user
+		ON to_user.to_user_id = messages_two_users.to_user_id;
+

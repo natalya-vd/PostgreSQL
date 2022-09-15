@@ -1,0 +1,38 @@
+-- Триггер. Если сообщение в группу пишет не участник группы
+CREATE OR REPLACE FUNCTION insert_messages_group() 
+RETURNS TRIGGER AS 
+$$
+DECLARE is_found BOOLEAN;
+BEGIN
+  is_found := EXISTS(
+	  WITH users_group AS (
+		SELECT user_id
+		FROM groups_users
+		WHERE status_id = 1 AND group_id = NEW.group_id)
+		SELECT *
+		FROM users_group
+		WHERE NEW.from_user_id IN (SELECT * FROM users_group));
+  IF is_found THEN
+    RETURN NEW;
+  END IF;
+  RAISE EXCEPTION 'User with ID: % does not belong to the group ID: %', NEW.from_user_id, NEW.group_id;
+END
+$$ 
+LANGUAGE PLPGSQL;
+
+CREATE TRIGGER check_messages_group_insert BEFORE INSERT ON groups_messages
+  FOR EACH ROW 
+  EXECUTE FUNCTION insert_messages_group();
+
+
+
+
+-- Проверка
+tg=> INSERT INTO groups_messages (from_user_id, group_id, status_id, body, created_at)
+tg->     VALUES (10, 194, 1, 'Test2', '2022-04-15 06:22:00');
+INSERT 0 1
+
+tg=> INSERT INTO groups_messages (from_user_id, group_id, status_id, body, created_at)
+tg->     VALUES (48, 194, 1, 'Test2', '2022-04-15 06:22:00');
+ОШИБКА:  User with ID: 48 does not belong to the group ID: 194
+CONTEXT:  функция PL/pgSQL insert_messages_group(), строка 15, оператор RAISE

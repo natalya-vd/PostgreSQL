@@ -1,0 +1,19 @@
+-- Функция, которая возвращает участника, котороый написал больше всего сообщений в группе
+CREATE FUNCTION get_id_user_most_messages_group(id_group INTEGER)
+RETURNS INTEGER AS
+$$
+	WITH messages_user_group AS (
+	SELECT 
+		from_user_id,
+		COUNT(id) AS count_messages
+	FROM groups_messages
+	WHERE groups_messages.group_id = id_group
+	GROUP BY from_user_id
+	ORDER BY count_messages DESC
+	LIMIT 1)
+	SELECT from_user_id
+	FROM messages_user_group;
+$$
+LANGUAGE SQL;
+
+SELECT get_id_user_most_messages_group(191);
